@@ -1,0 +1,35 @@
+Linux: 4.3.3-2-ARCH
+Compiler: g++ (GCC) 5.3.0
+
+name: Jeff Harrison
+email: jeffrharrison@gmail.com
+
+
+Thanks for the week to do this; I was entertaining some guests from out of town last weekend and had my first exam
+week of the semester as well.
+
+This server uses level-triggered epoll O(1) for polling incoming connections and is single threaded (no job pool) 
+largely because accessing the hash table is expected to take O(1) as well and additional locking might actually slow
+down the program. It should scale to millions of connections; however because the database is shared it will
+probably end up looking like noise to anyone expecting their keys to remain static at that scale (keys are overwritten). 
+
+The database is a simple unorded_map (hash table) that is set with 10K elements to hopefully avoid resizing (TODO: commandline option to size).
+
+Originally I had not known about epoll() and designed to select() over multiple threads and assign jobs to a pool. 
+This is some much cleaner code (although I'm playing with c++11 features like variadic templates unnecessarily because
+this is largely throwaway code). This is left as kv2 since I abandoned the design after learning about epoll(). 
+The database is taken from here, but is mostly a useless abstraction (no locks and the templating method makes more
+sense from a mathematician's point of view than a programmer's; I won't be using templates to provide a null / identity 
+value in the future).
+
+Since this was a somewhat new problem to me (recieving lots of connections is something I haven't done much of; massive amounts of outgoing connections
+I have done quite a bit. I wasn't really sure what kinds of problems I would run into / how I should design when starting) and
+it got to be very messy; I'd love a chance to clean it up into real code (I'll probably do so tomorrow anyway). 
+The tarpit problem was solved by giving each connection it's own buffer (in a hash table) and I used a huge string 
+as a buffer for both input and output (some strtok() got reused when I converted from a static 1024 read buffer 
+to a large input buffer and it really shouldn't be there). Right now I'm a little too tired to refactor it all, but
+it absolutely has to be done (yes; I'm really doing most of this in one big function...). It turned out not to be too bad, but
+experimenting code is often messy code...
+
+I'm left with a very unusual error (recv: k=x; expt k=x) that I'll be looking into as well, but otherwise the tests
+all pass. I'd love to add some performance analysis / matplotlib and so on as well.
